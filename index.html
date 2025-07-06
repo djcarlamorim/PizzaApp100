@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PizzaApp - Lista de Compras</title>
+    <!-- Ícone de Favicon para Navegador -->
+    <link rel="icon" href="Icopizza.ico" type="image/x-icon">
+    
+    <!-- Ícone para dispositivos móveis -->
+    <link rel="apple-touch-icon" href="Icopizza.ico">
+    <meta name="apple-mobile-web-app-title" content="PizzaApp">
+    
+    <!-- Configuração para Android -->
+    <link rel="icon" sizes="192x192" href="Icopizza.ico">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding-bottom: 100px;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        .pizza-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .pizza-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .pizza-card .form-check-input {
+            margin-top: 0;
+            cursor: pointer;
+        }
+        .pizza-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        .ingredients {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            border-top: 1px solid #eee;
+        }
+        .btn-generate {
+            background-color: #dc3545;
+            color: white;
+            font-weight: bold;
+            padding: 10px 25px;
+            border-radius: 30px;
+            border: none;
+            transition: all 0.3s;
+        }
+        .btn-generate:hover {
+            background-color: #c82333;
+            transform: scale(1.05);
+        }
+        .quantity-input {
+            width: 70px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .pizza-quantity {
+            margin-top: 10px;
+        }
+        .ingredient-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .summary-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .pizza-selected {
+            background-color: #fff3cd;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #shoppingListContent, #shoppingListContent * {
+                visibility: visible;
+            }
+            #shoppingListContent {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1 class="text-center"><i class="bi bi-egg-fried"></i> PizzaApp</h1>
+            <p class="text-center mb-0">Selecione as pizzas e quantidades</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group search-container">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Pesquisar pizzas...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <button class="btn btn-outline-primary" id="selectAllBtn">
+                    <i class="bi bi-check-all"></i> Selecionar Todas
+                </button>
+                <button class="btn btn-outline-danger" id="clearAllBtn">
+                    <i class="bi bi-x-circle"></i> Limpar
+                </button>
+            </div>
+        </div>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4" id="pizzaContainer">
+            <!-- As pizzas serão carregadas aqui pelo JavaScript -->
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="selected-count">
+                    <strong id="selectedCount">0</strong> pizzas selecionadas
+                </div>
+                <button type="button" id="generateReportBtn" class="btn-generate">
+                    <i class="bi bi-file-earmark-text"></i> Gerar Lista de Compras
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para visualização antes de imprimir -->
+    <div class="modal fade" id="shoppingListModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lista de Compras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="shoppingListContent">
+                    <div id="ingredientsList"></div>
+                    <div class="summary-card mt-3">
+                        <h5>Resumo</h5>
+                        <div id="summaryContent"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="printListBtn">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados das 50 pizzas (nome e ingredientes em gramas)
+            const pizzaData = [
+               { id: 1, name: "4 Queijos", ingredients: "Massa:300,Molho:150,Mussarela:100,Provolone:80,Parmesão:60,Gorgonzola:60" },
+                { id: 2, name: "Calabresa", ingredients: "Massa:300,Molho:150,Mussarela:120,Calabresa:100,Cebola:50" },
+                { id: 3, name: "Portuguesa", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Ovo:60,Cebola:50,Azeitona:30" },
+                { id: 4, name: "Marguerita", ingredients: "Massa:300,Molho:150,Mussarela:150,Tomate:50,Manjericão:20" },
+                { id: 5, name: "Frango Catupiry", ingredients: "Massa:300,Molho:150,Mussarela:100,Frango:120,Catupiry:100,Milho:50" },
+                { id: 6, name: "Pepperoni", ingredients: "Massa:300,Molho:150,Mussarela:120,Pepperoni:120" },
+                { id: 7, name: "Napolitana", ingredients: "Massa:300,Molho:150,Mussarela:120,Tomate:80,Manjericão:20,Alho:10" },
+                { id: 8, name: "Calabresa Especial", ingredients: "Massa:300,Molho:150,Mussarela:150,Calabresa:120,Cebola:50,Pimentão:30" },
+                { id: 9, name: "Bacon", ingredients: "Massa:300,Molho:150,Mussarela:120,Bacon:120,Cebola:30" },
+                { id: 10, name: "Atum", ingredients: "Massa:300,Molho:150,Mussarela:120,Atum:100,Cebola:50,Tomate:30" },
+                { id: 11, name: "Baiana", ingredients: "Massa:300,Molho:150,Mussarela:120,Calabresa:100,Pimenta:20,Cebola:50" },
+                { id: 12, name: "Brócolis", ingredients: "Massa:300,Molho:150,Mussarela:120,Brócolis:150,Catupiry:100" },
+                { id: 13, name: "Caipira", ingredients: "Massa:300,Molho:150,Mussarela:120,Frango:120,Milho:50,Catupiry:100" },
+                { id: 14, name: "Canadense", ingredients: "Massa:300,Molho:150,Mussarela:120,Lombo:150,Abacaxi:50" },
+                { id: 15, name: "Carne Seca", ingredients: "Massa:300,Molho:150,Mussarela:120,Carne Seca:150,Catupiry:80" },
+                { id: 16, name: "Escarola", ingredients: "Massa:300,Molho:150,Mussarela:120,Escarola:150,Alho:20" },
+                { id: 17, name: "Alho e Óleo", ingredients: "Massa:300,Molho:150,Mussarela:120,Alho:50,Azeite:30" },
+                { id: 18, name: "Palmito", ingredients: "Massa:300,Molho:150,Mussarela:120,Palmito:150,Molho:50" },
+                { id: 19, name: "Milho Verde", ingredients: "Massa:300,Molho:150,Mussarela:120,Milho:150,Ervilha:50" },
+                { id: 20, name: "Lombo", ingredients: "Massa:300,Molho:150,Mussarela:120,Lombo:150,Catupiry:100" },
+                { id: 21, name: "Mexicana", ingredients: "Massa:300,Molho:150,Mussarela:120,Carne Moída:150,Pimenta:30,Cebola:50" },
+                { id: 22, name: "Vegetariana", ingredients: "Massa:300,Molho:150,Mussarela:120,Abobrinha:50,Beringela:50,Pimentão:50" },
+                { id: 23, name: "Quatro Carnes", ingredients: "Massa:300,Molho:150,Mussarela:120,Calabresa:80,Presunto:80,Pepperoni:80,Lombo:80" },
+                { id: 24, name: "Frango com Cream Cheese", ingredients: "Massa:300,Molho:150,Mussarela:120,Frango:120,Cream Cheese:100" },
+                { id: 25, name: "Rúcula com Tomate Seco", ingredients: "Massa:300,Molho:150,Mussarela:120,Rúcula:80,Tomate Seco:60" },
+                { id: 26, name: "Cogumelos", ingredients: "Massa:300,Molho:150,Mussarela:120,Cogumelos:150" },
+                { id: 27, name: "Abobrinha Especial", ingredients: "Massa:300,Molho:150,Mussarela:120,Abobrinha:100,Tomate Seco:50" },
+                { id: 28, name: "Bauru", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Tomate:50,Queijo:100" },
+                { id: 29, name: "Toscana", ingredients: "Massa:300,Molho:150,Mussarela:120,Linguiça:120,Cebola:50" },
+                { id: 30, name: "Moda da Casa", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Palmito:80,Ervilha:50" },
+                { id: 31, name: "Champignon", ingredients: "Massa:300,Molho:150,Mussarela:120,Champignon:150" },
+                { id: 32, name: "Banana com Canela", ingredients: "Massa:300,Molho:150,Mussarela:120,Banana:150,Canela:20" },
+                { id: 33, name: "Brigadeiro", ingredients: "Massa:300,Leite Condensado:150,Chocolate:120,Granulado:50" },
+                { id: 34, name: "Prestígio", ingredients: "Massa:300,Leite Condensado:150,Chocolate:100,Coco Ralado:80" },
+                { id: 35, name: "Romeu e Julieta", ingredients: "Massa:300,Goiabada:150,Queijo Minas:120" },
+                { id: 36, name: "Chocolate Branco", ingredients: "Massa:300,Leite Condensado:150,Chocolate Branco:120" },
+                { id: 37, name: "Doce de Leite", ingredients: "Massa:300,Doce de Leite:200,Coco Ralado:50" },
+                { id: 38, name: "Morango com Chocolate", ingredients: "Massa:300,Chocolate:150,Morango:100" },
+                { id: 39, name: "Banana Split", ingredients: "Massa:300,Chocolate:100,Banana:100,Morango:50,Caramelo:50" },
+                { id: 40, name: "Ovomaltine", ingredients: "Massa:300,Leite Condensado:150,Ovomaltine:120" },
+                { id: 41, name: "Nutella", ingredients: "Massa:300,Nutella:200,Morango:100" },
+                { id: 42, name: "Paçoca", ingredients: "Massa:300,Doce de Leite:150,Paçoca:100" },
+                { id: 43, name: "Beijinho", ingredients: "Massa:300,Leite Condensado:150,Coco Ralado:100" },
+                { id: 44, name: "Sorvete", ingredients: "Massa:300,Sorvete:250,Calda:100" },
+                { id: 45, name: "M&M's", ingredients: "Massa:300,Chocolate:150,M&Ms:100" },
+                { id: 46, name: "KitKat", ingredients: "Massa:300,Chocolate:150,KitKat:100" },
+                { id: 47, name: "Churros", ingredients: "Massa:300,Doce de Leite:200,Canela:20" },
+                { id: 48, name: "Red Velvet", ingredients: "Massa:300,Cream Cheese:200,Chocolate:100" },
+                { id: 49, name: "Limão Siciliano", ingredients: "Massa:300,Cream Cheese:200,Limão:50" },
+                { id: 50, name: "Maracujá", ingredients: "Massa:300,Cream Cheese:200,Maracujá:100" },
+                { id: 51, name: "Carbonara", ingredients: "Massa:300,Molho:150,Mussarela:120,Bacon:100,Ovo:60,Parmesão:50" },
+                { id: 52, name: "Havaiana", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Abacaxi:100" },
+                { id: 53, name: "Caprese", ingredients: "Massa:300,Molho:150,Mussarela:150,Tomate:80,Mozzarella:100,Manjericão:20" },
+                { id: 54, name: "Alho Poró", ingredients: "Massa:300,Molho:150,Mussarela:120,Alho Poró:150,Cream Cheese:100" },
+                { id: 55, name: "Provolone", ingredients: "Massa:300,Molho:150,Provolone:200,Tomate Seco:50,Rúcula:30" },
+                { id: 56, name: "Gorgonzola com Pera", ingredients: "Massa:300,Molho:150,Gorgonzola:150,Pera:80,Nozes:30" },
+                { id: 57, name: "Camarão", ingredients: "Massa:300,Molho:150,Mussarela:120,Camarão:150,Alho:20" },
+                { id: 58, name: "Filé Mignon", ingredients: "Massa:300,Molho:150,Mussarela:120,Filé Mignon:150,Cogumelos:50" },
+                { id: 59, name: "Strogonoff", ingredients: "Massa:300,Molho:150,Mussarela:120,Frango:150,Cogumelos:50,Creme de Leite:50" },
+                { id: 60, name: "Caesar", ingredients: "Massa:300,Molho:150,Mussarela:120,Peito de Frango:150,Molho Caesar:50" },
+                { id: 61, name: "Parmegiana", ingredients: "Massa:300,Molho:150,Mussarela:120,Carne:150,Molho de Tomate:50,Parmesão:50" },
+                { id: 62, name: "Cheddar Bacon", ingredients: "Massa:300,Molho:150,Cheddar:150,Bacon:100,Cebola Caramelizada:50" },
+                { id: 63, name: "Costela BBQ", ingredients: "Massa:300,Molho:150,Mussarela:120,Costela:150,Molho BBQ:50" },
+                { id: 64, name: "Mediterrânea", ingredients: "Massa:300,Molho:150,Mussarela:120,Tomate Seco:80,Azeitona:50,Manjericão:20" },
+                { id: 65, name: "Fungi", ingredients: "Massa:300,Molho:150,Mussarela:120,Champignon:100,Shimeji:50,Shiitake:50" },
+                { id: 66, name: "Brie com Geleia", ingredients: "Massa:300,Molho:150,Brie:150,Geleia de Pimenta:50,Nozes:30" },
+                { id: 67, name: "Jalapeño", ingredients: "Massa:300,Molho:150,Mussarela:150,Jalapeño:80,Bacon:80" },
+                { id: 68, name: "Pancetta", ingredients: "Massa:300,Molho:150,Mussarela:120,Pancetta:100,Rúcula:50" },
+                { id: 69, name: "Siciliana", ingredients: "Massa:300,Molho:150,Mussarela:120,Beringela:80,Tomate Seco:50,Azeitona:30" },
+                { id: 70, name: "Tropical", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Abacaxi:80,Milho:50" },
+                { id: 71, name: "Pesto", ingredients: "Massa:300,Molho Pesto:150,Mussarela:120,Tomate Seco:50,Parmesão:50" },
+                { id: 72, name: "Gratinada", ingredients: "Massa:300,Molho:150,Mussarela:150,Catupiry:100,Parmesão:50" },
+                { id: 73, name: "Aliche", ingredients: "Massa:300,Molho:150,Mussarela:120,Aliche:100,Tomate Cereja:50" },
+                { id: 74, name: "Pequim", ingredients: "Massa:300,Molho:150,Mussarela:120,Patinho:150,Molho Hoisin:50" },
+                { id: 75, name: "Toscana Especial", ingredients: "Massa:300,Molho:150,Mussarela:120,Linguiça Toscana:150,Cebola Roxa:50" },
+                { id: 76, name: "Serrana", ingredients: "Massa:300,Molho:150,Mussarela:120,Carne Seca:100,Abobrinha:50" },
+                { id: 77, name: "Cubana", ingredients: "Massa:300,Molho:150,Mussarela:120,Presunto:80,Abacaxi:80,Bacon:80" },
+                { id: 78, name: "Gouda", ingredients: "Massa:300,Molho:150,Queijo Gouda:200,Tomate Seco:50" },
+                { id: 79, name: "Fondue", ingredients: "Massa:300,Molho:150,Mussarela:100,Provolone:100,Gorgonzola:50" },
+                { id: 80, name: "Primavera", ingredients: "Massa:300,Molho:150,Mussarela:120,Abobrinha:50,Beringela:50,Pimentão:50" },
+                { id: 81, name: "Chocolate com Morango", ingredients: "Massa:300,Chocolate:150,Morango:100,Leite Condensado:50" },
+                { id: 82, name: "Banana Caramelada", ingredients: "Massa:300,Doce de Leite:150,Banana:100,Canela:20" },
+                { id: 83, name: "Dois Amores", ingredients: "Massa:300,Chocolate:100,Chocolate Branco:100,Morango:50" },
+                { id: 84, name: "Chocolate com Amendoim", ingredients: "Massa:300,Chocolate:150,Amendoim:80,Leite Condensado:50" },
+                { id: 85, name: "Churros Especial", ingredients: "Massa:300,Doce de Leite:150,Chocolate:50,Canela:20" },
+                { id: 86, name: "Ferrero Rocher", ingredients: "Massa:300,Nutella:150,Ferrero Rocher:100,Chocolate:50" },
+                { id: 87, name: "Oreo", ingredients: "Massa:300,Chocolate:150,Biscoito Oreo:100,Leite Condensado:50" },
+                { id: 88, name: "Kinder Bueno", ingredients: "Massa:300,Chocolate:150,Kinder Bueno:100,Leite Condensado:50" },
+                { id: 89, name: "Chocolate com Castanha", ingredients: "Massa:300,Chocolate:150,Castanha do Pará:80,Leite Condensado:50" },
+                { id: 90, name: "Chocolate com Nozes", ingredients: "Massa:300,Chocolate:150,Nozes:80,Leite Condensado:50" },
+                { id: 91, name: "Chocolate com Avelã", ingredients: "Massa:300,Nutella:200,Avelã:50,Chocolate:50" },
+                { id: 92, name: "Chocolate com Café", ingredients: "Massa:300,Chocolate:150,Café:50,Leite Condensado:50" },
+                { id: 93, name: "Chocolate com Pistache", ingredients: "Massa:300,Chocolate:150,Pistache:80,Leite Condensado:50" },
+                { id: 94, name: "Chocolate com Coco Queimado", ingredients: "Massa:300,Chocolate:150,Coco Ralado:80,Leite Condensado:50" },
+                { id: 95, name: "Chocolate com Paçoca", ingredients: "Massa:300,Chocolate:150,Paçoca:100,Leite Condensado:50" },
+                { id: 96, name: "Chocolate com Marshmallow", ingredients: "Massa:300,Chocolate:150,Marshmallow:100,Leite Condensado:50" },
+                { id: 97, name: "Chocolate com Cookies", ingredients: "Massa:300,Chocolate:150,Cookies:100,Leite Condensado:50" },
+                { id: 98, name: "Chocolate com Brownie", ingredients: "Massa:300,Chocolate:150,Brownie:100,Leite Condensado:50" },
+                { id: 99, name: "Chocolate com Brigadeiro Branco", ingredients: "Massa:300,Chocolate:150,Brigadeiro Branco:100,Leite Condensado:50" },
+                { id: 100, name: "Chocolate com Nutella e Morango", ingredients: "Massa:300,Nutella:150,Morango:100,Chocolate:50" }
+            ];
+
+            // Cria as pizzas no container
+        const pizzaContainer = document.getElementById('pizzaContainer');
+        pizzaData.forEach(pizza => {
+            const pizzaElement = document.createElement('div');
+            pizzaElement.className = 'col pizza-item';
+            pizzaElement.setAttribute('data-name', pizza.name.toLowerCase());
+            
+            pizzaElement.innerHTML = ` 
+                <div class="card pizza-card h-100">
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input pizza-checkbox" type="checkbox" id="pizza${pizza.id}" value="${pizza.name}" data-ingredientes="${pizza.ingredients}">
+                            <label class="form-check-label" for="pizza${pizza.id}">
+                                <div class="pizza-name">${pizza.name}</div>
+                                <div class="ingredients">${formatIngredients(pizza.ingredients)}</div>
+                            </label>
+                        </div>
+                        <div class="pizza-quantity mt-2">
+                            <label>Quantidade:</label>
+                            <input type="number" min="1" value="1" class="form-control quantity-input" data-pizza-id="pizza${pizza.id}">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            pizzaContainer.appendChild(pizzaElement);
+        });
+
+        // Formata os ingredientes para exibição (ex: "Massa (300g), Molho (150g)")
+        function formatIngredients(ingredients) {
+            return ingredients.split(',').map(item => {
+                const [name, grams] = item.split(':');
+                return `${name} (${grams}g)`;
+            }).join(', ');
+        }
+
+        // Atualiza a contagem de pizzas selecionadas
+        function updateSelectedCount() {
+            const selectedCount = document.querySelectorAll('.pizza-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = selectedCount;
+        }
+
+        // Selecionar todas as pizzas
+        document.getElementById('selectAllBtn').addEventListener('click', function() {
+            document.querySelectorAll('.pizza-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateSelectedCount();
+        });
+
+        // Limpar seleção
+        document.getElementById('clearAllBtn').addEventListener('click', function() {
+            document.querySelectorAll('.pizza-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateSelectedCount();
+        });
+
+        // Pesquisar pizzas
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.pizza-item').forEach(item => {
+                const pizzaName = item.getAttribute('data-name');
+                if (pizzaName.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // Clique no card para selecionar
+        document.querySelectorAll('.pizza-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
+                const checkbox = card.querySelector('.pizza-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    updateSelectedCount();
+                }
+            });
+        });
+
+        // Gerar lista de compras
+        document.getElementById('generateReportBtn').addEventListener('click', function() {
+            const ingredients = {};
+            let totalPizzas = 0;
+            let selectedPizzas = [];
+
+            // Calcular ingredientes
+            document.querySelectorAll('.pizza-checkbox:checked').forEach(checkbox => {
+                const pizzaId = checkbox.id;
+                const quantityInput = document.querySelector(`.quantity-input[data-pizza-id="${pizzaId}"]`);
+                const quantity = parseInt(quantityInput?.value) || 1;
+                totalPizzas += quantity;
+                const pizzaName = checkbox.value;
+                selectedPizzas.push({name: pizzaName, quantity: quantity});
+
+                if (checkbox.dataset.ingredientes) {
+                    const ingredientsList = checkbox.dataset.ingredientes.split(',');
+                    ingredientsList.forEach(item => {
+                        const [name, grams] = item.split(':');
+                        const totalGrams = parseFloat(grams) * quantity;
+                        ingredients[name] = (ingredients[name] || 0) + totalGrams;
+                    });
+                }
+            });
+
+            // Verificar se há pizzas selecionadas
+            if (selectedPizzas.length === 0) {
+                alert('Por favor, selecione pelo menos uma pizza!');
+                return;
+            }
+
+            // Exibir no modal
+            const ingredientsListHTML = Object.entries(ingredients)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, grams]) => `
+                    <div class="ingredient-item">
+                        <span>${name}</span>
+                        <span class="ingredient-amount">${Math.round(grams)}g</span>
+                    </div>
+                `).join('');
+
+            const summaryHTML = `
+                <p>Total de Pizzas: <strong>${totalPizzas}</strong></p>
+                <p>Tipos de Pizzas: <strong>${selectedPizzas.length}</strong></p>
+                <p>Ingredientes Diferentes: <strong>${Object.keys(ingredients).length}</strong></p>
+                <div class="mt-2">
+                    <h6>Pizzas Selecionadas:</h6>
+                    <ul>
+                        ${selectedPizzas.map(pizza => `<li>${pizza.name} (${pizza.quantity}x)</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+
+            document.getElementById('ingredientsList').innerHTML = `
+                <h5>Ingredientes Necessários (em gramas)</h5>
+                ${ingredientsListHTML}
+            `;
+            document.getElementById('summaryContent').innerHTML = summaryHTML;
+
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('shoppingListModal'));
+            modal.show();
+        });
+
+        // Botão imprimir
+        document.getElementById('printListBtn').addEventListener('click', function() {
+            window.print();
+        });
+
+        // Atualizar contagem inicial
+        updateSelectedCount();
+    });
+</script>
+
+</body>
+</html>
